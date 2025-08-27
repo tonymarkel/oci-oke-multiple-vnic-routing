@@ -1,0 +1,9 @@
+tenancy_ocid             = "ocid1.tenancy.oc1.."            # Get this from OCI Console (after logging in, go to top-right-most menu item and click option "Tenancy: <your tenancy name>").
+user_ocid                = "ocid1.user.oc1.."
+fingerprint              = "4a:df...:02"
+private_key_path         = "/Users/example/.oci/key.pem"
+private_key_password     = "" 
+region                   = "us-sanjose-1"
+oke_compartment_ocid     = "ocid1.compartment.oc1.."
+network_compartment_ocid = "ocid1.compartment.oc1.."
+availability_domain      = "rgiR:US-SANJOSE-1-AD-1"
