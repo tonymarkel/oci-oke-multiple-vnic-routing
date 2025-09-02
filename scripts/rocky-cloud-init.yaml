@@ -1,0 +1,225 @@
+#cloud-config
+
+# Rocky Linux 8 cloud-init script for OKE 1.33 node pool
+# Configures CRI-O, kubelet, and OCI tools for cluster joining
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - wget
+  - yum-utils
+  - device-mapper-persistent-data
+  - lvm2
+  - socat
+  - conntrack
+  - ipset
+  - firewalld
+  - ebtables
+  - ethtool
+  - util-linux
+  - iproute-tc
+  - container-selinux
+  - python3.12
+  - python3.12-venv
+  - python3.12-dev
+  - python3-pip
+
+runcmd:
+
+  # Configure kernel modules for Kubernetes
+  - modprobe overlay
+  - modprobe br_netfilter
+  - echo 'overlay' >> /etc/modules-load.d/kubernetes.conf
+  - echo 'br_netfilter' >> /etc/modules-load.d/kubernetes.conf
+
+  # Configure sysctl for Kubernetes
+  - |
+    cat > /etc/sysctl.d/99-kubernetes.conf << EOF
+    net.bridge.bridge-nf-call-iptables = 1
+    net.bridge.bridge-nf-call-ip6tables = 1
+    net.ipv4.ip_forward = 1
+    net.ipv4.conf.all.forwarding = 1
+    net.ipv6.conf.all.forwarding = 1
+    EOF
+  - sysctl --system
+
+  # Disable swap permanently
+  - swapoff -a
+  - sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+  # Configure SELinux for containers
+  - setenforce 0
+  - sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+  # Add Kubernetes repository
+  - |
+    KUBERNETES_VERSION="v1.33"
+    cat > /etc/yum.repos.d/kubernetes.repo << EOF
+    [kubernetes]
+    name=Kubernetes
+    baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/
+    enabled=1
+    gpgcheck=1
+    gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/rpm/repodata/repomd.xml.key
+    EOF
+
+  # Add CRI-O repository for version 1.33
+  - |
+    CRIO_VERSION="v1.33"
+    cat > /etc/yum.repos.d/crio.repo << EOF
+    [cri-o]
+    name=CRI-O
+    baseurl=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/
+    enabled=1
+    gpgcheck=1
+    gpgkey=https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/rpm/repodata/repomd.xml.key
+    EOF
+
+  # Install CRI-O and Kubernetes components
+  - dnf install -y --disableexcludes=kubernetes kubelet kubeadm kubectl cri-o cri-tools
+
+  # Configure CRI-O
+  - |
+    cat > /etc/crio/crio.conf << EOF
+    [crio]
+    [crio.api]
+    listen = "/var/run/crio/crio.sock"
+    
+    [crio.runtime]
+    runtime_path = ""
+    runtime_type = "oci"
+    runtime_root = "/run/runc"
+    default_runtime = "runc"
+    conmon = ""
+    conmon_cgroup = "pod"
+    default_env = [
+        "NSS_SDB_USE_CACHE=no",
+    ]
+    log_level = "info"
+    cgroup_manager = "systemd"
+    
+    [crio.image]
+    default_transport = "docker://"
+    pause_image = "registry.k8s.io/pause:3.10"
+    
+    [crio.network]
+    network_dir = "/etc/cni/net.d/"
+    plugin_dirs = [
+        "/opt/cni/bin",
+    ]
+    
+    [crio.metrics]
+    enable_metrics = true
+    metrics_port = 9090
+    EOF
+
+  # Configure kubelet for CRI-O
+  - |
+    cat > /etc/systemd/system/kubelet.service.d/20-crio.conf << EOF
+    [Service]
+    Environment="KUBELET_EXTRA_ARGS=--container-runtime-endpoint=unix:///var/run/crio/crio.sock --runtime-request-timeout=5m"
+    EOF
+
+  # Install OCI CLI
+  - |
+    curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | bash -s -- --accept-all-defaults
+    
+  # Enable the OCI CLI for all users
+  - chmod a+rx /root/bin/oci
+  - chmod -R a+rx /root/lib
+  - ln -sf /root/bin/oci /usr/local/bin/oci
+
+  # Install CNI plugins
+  - mkdir -p /opt/cni/bin
+  - |
+    CNI_VERSION="v1.7.1"
+    curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-linux-amd64-${CNI_VERSION}.tgz" | tar -C /opt/cni/bin -xz
+
+  # Configure container registry credentials directory
+  - mkdir -p /var/lib/kubelet
+  - mkdir -p /etc/kubernetes
+  - mkdir -p /etc/cni/net.d
+
+  # Set up OCI instance metadata service access
+  - |
+    cat > /etc/systemd/system/oci-metadata.service << EOF
+    [Unit]
+    Description=OCI Instance Metadata Service
+    After=network.target
+    
+    [Service]
+    Type=oneshot
+    ExecStart=/bin/bash -c 'curl -s http://169.254.169.254/opc/v1/instance/ > /var/lib/oci-instance-metadata.json'
+    RemainAfterExit=true
+    
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+
+  # Enable and start services
+  - systemctl daemon-reload
+  - systemctl enable crio
+  - systemctl enable kubelet
+  - systemctl enable oci-metadata
+  - systemctl start crio
+  - systemctl start oci-metadata
+
+  # Configure firewall for Kubernetes
+  - systemctl enable firewalld
+  - systemctl start firewalld
+  - firewall-cmd --permanent --add-port=10250/tcp  # kubelet API
+  - firewall-cmd --permanent --add-port=30000-32767/tcp  # NodePort services
+  - firewall-cmd --permanent --add-port=6443/tcp  # Kubernetes API server
+  - firewall-cmd --permanent --add-masquerade
+  - firewall-cmd --reload
+
+  # Clean up package cache
+  - dnf clean all
+
+  # Create directory for OKE node configuration
+  - mkdir -p /etc/oke
+
+write_files:
+  # Configure container runtime endpoint for crictl
+  - path: /etc/crictl.yaml
+    content: |
+      runtime-endpoint: unix:///var/run/crio/crio.sock
+      image-endpoint: unix:///var/run/crio/crio.sock
+      timeout: 2
+      debug: false
+      pull-image-on-create: false
+    permissions: '0644'
+
+  # Create systemd drop-in for kubelet to use proper cgroup driver
+  - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    content: |
+      [Service]
+      Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
+      Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
+      EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
+      EnvironmentFile=-/etc/default/kubelet
+      ExecStart=
+      ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
+    permissions: '0644'
+
+  # Ensure proper DNS resolution
+  - path: /etc/systemd/resolved.conf
+    content: |
+      [Resolve]
+      DNS=169.254.169.254
+      Domains=~.
+    permissions: '0644'
+
+# Disable default user account creation and SSH key setup
+users: []
+ssh_pwauth: false
+disable_root: false
+
+# Final reboot to ensure all configurations are applied
+power_state:
+  delay: 30
+  mode: reboot
+  message: "Rebooting to complete Rocky Linux 8 OKE node configuration"
+  condition: true

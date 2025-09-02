@@ -257,9 +257,9 @@ resource "oci_core_subnet" "oke_secondary_vnic_subnet" {
 resource "oci_core_subnet" "oke_pod_subnet" {
   compartment_id             = var.network_compartment_ocid
   vcn_id                     = oci_core_vcn.oke_vcn.id
-  cidr_block                 = "192.168.5.0/22"
+  cidr_block                 = "192.168.8.0/20"
   display_name               = "oke-pod-subnet"
-  dns_label                  = "services"
+  dns_label                  = "pods"
   security_list_ids          = [oci_core_security_list.oke_node_security_list.id]
   route_table_id             = oci_core_route_table.oke_private_route_table.id
   dhcp_options_id            = oci_core_vcn.oke_vcn.default_dhcp_options_id
@@ -272,6 +272,9 @@ resource "oci_containerengine_cluster" "oke_cluster" {
   kubernetes_version = data.oci_containerengine_cluster_option.oke_cluster_option.kubernetes_versions[0]
   name               = "oke-cluster"
   vcn_id             = oci_core_vcn.oke_vcn.id
+  cluster_pod_network_options {
+    cni_type = "OCI_VCN_IP_NATIVE"
+  }
 
   endpoint_config {
     is_public_ip_enabled = true
@@ -290,10 +293,10 @@ resource "oci_containerengine_cluster" "oke_cluster" {
       is_pod_security_policy_enabled = false
     }
 
-    kubernetes_network_config {
-      pods_cidr     = "10.244.0.0/16"
-      services_cidr = "10.96.0.0/16"
-    }
+    # kubernetes_network_config {
+    #   pods_cidr     = "192.168.8.0/20"
+    #   services_cidr = "192.168.16.0/20"
+    # }
   }
 }
 

@@ -1,0 +1,34 @@
+allow any-user to manage instances in compartment POC-app-cmp where all { request.principal.type = 'cluster', request.principal.compartment.id = 'ocid1.compartment.oc1..aaaaaaaabnfkzihajfy36lg7keuprwvppbzhrs4keldd4sgrfw46sjulsztq' }
+allow any-user to use network-security-groups in compartment POC-network-cmp where all { request.principal.type = 'cluster', request.principal.compartment.id = 'ocid1.compartment.oc1..aaaaaaaabnfkzihajfy36lg7keuprwvppbzhrs4keldd4sgrfw46sjulsztq' }
+allow any-user to use private-ips in compartment POC-network-cmp where all { request.principal.type = 'cluster', request.principal.compartment.id = 'ocid1.compartment.oc1..aaaaaaaabnfkzihajfy36lg7keuprwvpp sbzhrs4keldd4sgrfw46sjulsztq' }
+allow any-user to use subnets in compartment POC-network-cmp where all { request.principal.type = 'cluster', request.principal.compartment.id = 'ocid1.compartment.oc1..aaaaaaaabnfkzihajfy36lg7keuprwvppbzhrs4keldd4sgrfw46sjulsztq' }
+allow dynamic-group POC-app-dynamic-group to inspect compartments in compartment POC-top-cmp
+allow dynamic-group POC-app-dynamic-group to manage buckets in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage cluster-family in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage cluster-node-pools in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage dns in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage dns in compartment POC-network-cmp
+allow dynamic-group POC-app-dynamic-group to manage instance-configurations in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage instance-family in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage instances in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage object-family in compartment POC-app-cmp where any {request.permission = 'OBJECT_DELETE', request.permission = 'BUCKET_DELETE'}
+allow dynamic-group POC-app-dynamic-group to manage objects in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage virtual-network-family in compartment POC-network-cmp
+allow dynamic-group POC-app-dynamic-group to manage volume-attachments in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage volume-attachments in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to manage volume-family in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to read buckets in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to read vaults in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to read vaults in compartment POC-security-cmp
+allow dynamic-group POC-app-dynamic-group to use keys in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to use keys in compartment POC-security-cmp
+allow dynamic-group POC-app-dynamic-group to use network-security-groups in compartment POC-network-cmp
+allow dynamic-group POC-app-dynamic-group to use private-ips in compartment POC-network-cmp
+allow dynamic-group POC-app-dynamic-group to use secret-family in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to use secret-family in compartment POC-security-cmp
+allow dynamic-group POC-app-dynamic-group to use subnets in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to use subnets in compartment POC-network-cmp
+allow dynamic-group POC-app-dynamic-group to use vnics in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to use vnics in compartment POC-network-cmp
+allow dynamic-group POC-app-dynamic-group to use volume-backups in compartment POC-app-cmp
+allow dynamic-group POC-app-dynamic-group to use volumes in compartment POC-app-cmp
