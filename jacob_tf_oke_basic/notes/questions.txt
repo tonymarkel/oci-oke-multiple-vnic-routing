@@ -1,9 +1,0 @@
-one big file or multiple tf files?
-- tony likes
-        - main (using resources, data blocks, clusters)
-        - variables (just definitions, i.e. variable "tenancy_id" {})
-        - input.auto.tfvars (tenancy_ocid = "abdsdndj")
-
-do we create the compartment in tf or console? 
-
-why oci landing zone? license?
