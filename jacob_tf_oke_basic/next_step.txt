@@ -1,0 +1,11 @@
+
+- tony has repo that does not work
+- set up secondary subnet and set up secondary public IP
+- https://github.com/tonymarkel/oci-oke-multiple-vnic-routing 
+
+question is how to make a pod subnet 
+or do you need this at availability_domain
+deep dive into pod subnets
+
+
+

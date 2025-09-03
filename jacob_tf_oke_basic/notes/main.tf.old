@@ -1,0 +1,34 @@
+# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl/
+
+# ----------------------------------------------------------------------------------------
+# -- This configuration deploys a CIS compliant landing zone with default VCN settings.
+# -- See other templates for other CIS compliant landing zones with alternative settings.
+# -- 1. Rename this file to main.tf. 
+# -- 2. Provide/review the variable assignments below.
+# -- 3. In this folder, execute the typical Terraform workflow:
+# ----- $ terraform init
+# ----- $ terraform plan
+# ----- $ terraform apply
+# ----------------------------------------------------------------------------------------
+
+module "core_lz" {
+    source =  "github.com/oci-landing-zones/terraform-oci-core-landingzone.git"
+
+    tenancy_ocid         = "ocid1.tenancy.oc1..aaaaaaaa6ynrftvbieyuky76qe6trkpgif5mo47qyar5fgqm6bhaw3my2flq"               
+    user_ocid            = "ocid1.user.oc1..aaaaaaaa5mopvbhj4egje3hh64iekemvqrnpt2fj2n3yee7ibxqy2h7r6c5q"               
+    fingerprint          = "d5:66:1b:2c:c0:6a:1a:c1:32:a0:ad:a6:da:27:b9:20" 
+    private_key_path     = "~/.oci/jacob.lapp@oracle.com-2025-08-07T16_48_46.566Z.pem"               
+    private_key_password = ""                                                
+    region               = "us-ashburn-1" 
+    service_label        = "oke_sb"       
+
+    root_compartments = [
+        {
+            name           = "tony_sandbox_compartment"
+            description    = "Compartment for Tony assignment"
+            enable_delete  = true
+        }
+    ]
+
+}

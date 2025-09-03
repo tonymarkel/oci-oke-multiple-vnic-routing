@@ -1,0 +1,1 @@
+data "oci_core_services" "all_services" {}
